@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 
 // Создаем экземпляр приложения Express
 const app = express();
@@ -15,6 +17,59 @@ app.use(cors());
 
 // Обслуживание статических файлов из текущей директории
 app.use(express.static(__dirname));
+
+// Настройки Swagger
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'API интернет-магазина',
+      version: '1.0.0',
+      description: 'API для управления товарами в интернет-магазине',
+    },
+    servers: [
+      {
+        url: 'http://localhost:8080',
+        description: 'Сервер разработки',
+      },
+    ],
+    components: {
+      schemas: {
+        Product: {
+          type: 'object',
+          required: ['name', 'price', 'description', 'categoryId'],
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Уникальный идентификатор товара'
+            },
+            name: {
+              type: 'string',
+              description: 'Название товара'
+            },
+            price: {
+              type: 'number',
+              format: 'float',
+              description: 'Цена товара'
+            },
+            description: {
+              type: 'string',
+              description: 'Описание товара'
+            },
+            categoryId: {
+              type: 'integer',
+              description: 'Идентификатор категории товара'
+            }
+          }
+        }
+      }
+    }
+  },
+  apis: ['./index.js'], // Путь к файлам с комментариями JSDoc
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Путь к файлу с данными о товарах
 const PRODUCTS_FILE = path.join(__dirname, '..', 'product-server', 'products.json');
@@ -49,6 +104,17 @@ app.get('/', (req, res) => {
 // API маршруты для администрирования
 
 // Получение всех товаров и категорий
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Получение всех товаров и категорий
+ *     description: Возвращает полный список товаров и категорий
+ *     tags: [Products]
+ *     responses:
+ *       200:
+ *         description: Успешный ответ с данными
+ */
 app.get('/api/products', (req, res) => {
   const data = readProductsFile();
   res.json(data);
