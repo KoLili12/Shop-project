@@ -44,6 +44,13 @@
       "description": "смартфон",
       "categoryId": 1,
       "id": 6
+    },
+    {
+      "name": "макбук",
+      "price": 200000,
+      "description": "-",
+      "categoryId": 1,
+      "id": 7
     }
   ]
 }

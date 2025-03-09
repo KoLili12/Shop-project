@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Административная панель</title>
     <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --text-color: #333;
+            --light-bg: #f5f5f5;
+            --card-bg: #fff;
+            --border-color: #ddd;
+        }
         body {
             font-family: Arial, sans-serif;
             max-width: 1200px;
@@ -117,10 +125,92 @@
             color: #a94442;
             border: 1px solid #ebccd1;
         }
+        /* Стили для чата */
+        .chat-section {
+            flex: 1;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 700px;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background-color: var(--secondary-color);
+            color: white;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-break: break-word;
+        }
+
+        .message-admin {
+            align-self: flex-end;
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .message-customer {
+            align-self: flex-start;
+            background-color: var(--light-bg);
+        }
+
+        .message-system {
+            align-self: center;
+            background-color: var(--light-bg);
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            font-size: 14px;
+            padding: 5px 10px;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .chat-input {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .user-info {
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--light-bg);
+        }
     </style>
 </head>
 <body>
     <h1>Административная панель</h1>
+    <button id="connect-chat" class="edit">Подключиться к чату</button>
     
     <div id="notification" style="display: none;" class="notification"></div>
     
@@ -175,6 +265,28 @@
                     <!-- Товары будут загружены динамически -->
                 </tbody>
             </table>
+        </div>
+        <div class="chat-section">
+            <div class="chat-header">
+                <h3>Чат с покупателями</h3>
+                <div id="connection-status">Отключено</div>
+            </div>
+            
+            <div class="user-info">
+                <label for="admin-username">Ваше имя:</label>
+                <input type="text" id="admin-username" value="Администратор">
+            </div>
+            
+            <div id="chat-messages" class="chat-messages">
+                <div class="message message-system">
+                    Добро пожаловать в чат поддержки. Нажмите "Подключиться к чату", чтобы начать общение с покупателями.
+                </div>
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="message-input" placeholder="Введите сообщение..." disabled>
+                <button id="send-message" disabled>Отправить</button>
+            </div>
         </div>
     </div>
 
@@ -404,6 +516,166 @@
         window.addEventListener('DOMContentLoaded', async () => {
             await loadCategories();
             await loadProducts();
+        });
+        // Чат-элементы
+        const connectChatBtn = document.getElementById('connect-chat');
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const sendMessageBtn = document.getElementById('send-message');
+        const adminUsernameInput = document.getElementById('admin-username');
+        const connectionStatus = document.getElementById('connection-status');
+
+        // WebSocket переменные
+        let websocket = null;
+        let userId = 'admin_' + Math.random().toString(36).substr(2, 9);
+
+        // Переключение соединения с WebSocket чатом
+        function toggleChatConnection() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.close();
+            } else {
+                connectToChat();
+            }
+        }
+
+        // Подключение к WebSocket чату
+        function connectToChat() {
+            websocket = new WebSocket('ws://localhost:5001/chat');
+            
+            websocket.onopen = () => {
+                connectionStatus.textContent = 'Подключено';
+                connectionStatus.style.color = '#4CAF50';
+                
+                // Активация элементов интерфейса чата
+                connectChatBtn.textContent = 'Отключиться от чата';
+                messageInput.disabled = false;
+                sendMessageBtn.disabled = false;
+                
+                // Добавление системного сообщения
+                addChatMessage({
+                    type: 'message',
+                    userType: 'system',
+                    content: 'Вы подключились к чату поддержки.'
+                });
+                
+                // Отправка информации о пользователе
+                const username = adminUsernameInput.value || 'Администратор';
+                const message = {
+                    type: 'connect',
+                    userType: 'admin',
+                    userId: userId,
+                    username: username,
+                    content: 'подключился к чату'
+                };
+                
+                if (websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify(message));
+                }
+            };
+            
+            websocket.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    addChatMessage(message);
+                } catch (error) {
+                    console.error('Ошибка при обработке сообщения:', error);
+                }
+            };
+            
+            websocket.onerror = (error) => {
+                console.error('WebSocket ошибка:', error);
+                addChatMessage({
+                    type: 'message',
+                    userType: 'system',
+                    content: 'Ошибка соединения с чатом.'
+                });
+            };
+            
+            websocket.onclose = () => {
+                connectionStatus.textContent = 'Отключено';
+                connectionStatus.style.color = '';
+                
+                // Деактивация элементов интерфейса чата
+                connectChatBtn.textContent = 'Подключиться к чату';
+                messageInput.disabled = true;
+                sendMessageBtn.disabled = true;
+                
+                // Добавление системного сообщения
+                addChatMessage({
+                    type: 'message',
+                    userType: 'system',
+                    content: 'Вы отключились от чата поддержки.'
+                });
+            };
+        }
+
+        // Отправка сообщения в чат
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            
+            if (content && websocket && websocket.readyState === WebSocket.OPEN) {
+                const username = adminUsernameInput.value || 'Администратор';
+                
+                const message = {
+                    type: 'message',
+                    userType: 'admin',
+                    userId: userId,
+                    username: username,
+                    content: content
+                };
+                
+                websocket.send(JSON.stringify(message));
+                messageInput.value = '';
+            }
+        }
+
+        // Добавление сообщения в чат
+        function addChatMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message message-${message.userType}`;
+            
+            if (message.userType === 'system') {
+                messageElement.textContent = message.content;
+            } else {
+                const isCurrentUser = message.userType === 'admin' && message.userId === userId;
+                const messageClass = isCurrentUser ? 'message-admin' : 'message-customer';
+                messageElement.className = `message ${messageClass}`;
+                
+                const header = document.createElement('div');
+                header.className = 'message-header';
+                
+                if (message.timestamp) {
+                    const time = new Date(message.timestamp);
+                    const formattedTime = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    header.textContent = `${message.username} • ${formattedTime}`;
+                } else {
+                    header.textContent = message.username;
+                }
+                
+                const content = document.createElement('div');
+                content.textContent = message.content;
+                
+                messageElement.appendChild(header);
+                messageElement.appendChild(content);
+            }
+            
+            chatMessages.appendChild(messageElement);
+            
+            // Прокрутка чата до последнего сообщения
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Настройка обработчиков событий для чата
+        connectChatBtn.addEventListener('click', toggleChatConnection);
+
+        sendMessageBtn.addEventListener('click', () => {
+            sendMessage();
+        });
+
+        messageInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
         });
     </script>
 </body>
