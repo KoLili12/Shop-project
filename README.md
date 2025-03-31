@@ -2,14 +2,49 @@
 
 Проект содержит HTTP-сервер для отображения каталога товаров и административную панель для управления товарами.
 
-## Требования
+## Шаги установки
 
-- Node.js (версия 12 или выше)
-- npm (обычно устанавливается вместе с Node.js)
-
-## Установка
-
-1. Клонируйте репозиторий:
+1. **Клонирование репозитория (main ветка)**
    ```bash
-   git clone https://github.com/KoLili12/shop-project.git
-   cd shop-project
+   git clone -b main https://github.com/KoLili12/Shop-project.git
+   cd Shop-project
+   ```
+
+2. **Настройка переменных окружения**
+   Создайте файл `.env` в корневой директории проекта и добавьте следующие переменные:
+   ```
+   # Серверные настройки
+   PORT=5000
+   NODE_ENV=development
+   
+   # MongoDB
+   MONGO_URI=mongodb://localhost:27017/shop_project
+   
+   # JWT
+   JWT_SECRET=your_jwt_secret_key
+   ```
+
+3. **Установка зависимостей и запуск сервера**
+   ```bash
+   # Установка зависимостей сервера
+   cd backend
+   npm install
+   
+   # Запуск сервера
+   npm run dev
+   ```
+
+4. **Установка зависимостей и запуск клиентской части**
+   ```bash
+   # Установка зависимостей клиента
+   cd ../frontend
+   npm install
+   
+   # Запуск клиентской части
+   npm start
+   ```
+
+5. **Доступ к приложению**
+   - Клиентская часть: `http://localhost:3000`
+   - API сервера: `http://localhost:5000/api`
+
