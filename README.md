@@ -12,8 +12,8 @@
 2. **Установка зависимостей и запуск сервера**
    ```bash
    # Установка зависимостей сервера
-   cd backend
-   npm install
+   cd admin-server
+   node index.js
    
    # Запуск сервера
    npm run dev
@@ -22,14 +22,11 @@
 3. **Установка зависимостей и запуск клиентской части**
    ```bash
    # Установка зависимостей клиента
-   cd ../frontend
-   npm install
-   
-   # Запуск клиентской части
-   npm start
-   ```
+   cd product-server
+   node index.js
 
 4. **Доступ к приложению**
    - Клиентская часть: `http://localhost:3000`
    - API сервера: `http://localhost:5000/api`
+   - Документация swagger: `http://localhost:8080/api-docs`
 
